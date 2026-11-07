@@ -229,3 +229,7 @@ Equations reverse-engineered by Keith Monahan (techtravels.org).
 
 Rev 2.0 board pin mapping traced and verified in hardware by
 Walter [SURNAME PENDING].
+
+## License
+
+MIT. See [LICENSE](LICENSE).
