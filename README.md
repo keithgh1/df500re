@@ -173,18 +173,30 @@ complex mode). A GAL16V8 is a pin-compatible drop-in for the PAL16L8 socket.
 Programmers such as the TL866 / T48 load the `.jed` directly. Select the
 GAL16V8 device that matches the part in your hand.
 
-### Fuse checksums
+### Checksums
 
-| File | Checksum |
-|---|---|
-| [`df500_buss_board_rev20.jed`](equations/scsi_board_rev2.0/df500_buss_board_rev20.jed) (SCSI rev 2.0) | C45CF |
-| [`df500_buss_board_rev21.jed`](equations/scsi_board_rev2.1/df500_buss_board_rev21.jed) (SCSI rev 2.1) | C45CF |
-| [`df500_dfi_board_rev23.jed`](equations/ide_board_rev2.3/df500_dfi_board_rev23.jed) (IDE rev 2.3) | C4E96 |
-| [`df500_dtack02_board_rev23.jed`](equations/ide_board_rev2.3/df500_dtack02_board_rev23.jed) (IDE rev 2.3) | C6A56 |
+Each image has two checksums:
 
-The two BUSS images share a checksum. Exchanging two output blocks does not
-change the fuse sum, so a programmer cannot tell these two chips apart.
-**Label the chip** with the board revision after burning.
+- **Fuse checksum**: the JEDEC `*C` field at the end of the `.jed`, a sum
+  over the fuse map. It describes the programmed chip, so it is what to
+  compare after a burn or a rebuild.
+- **File checksum**: SHA-256 of the published `.jed` file. Use it to check
+  your download.
+
+| File | Board | Fuse&nbsp;checksum | File checksum (SHA-256) |
+|---|---|---|---|
+| [`df500_buss_board_rev20.jed`](equations/scsi_board_rev2.0/df500_buss_board_rev20.jed) | SCSI&nbsp;rev&nbsp;2.0 | `45CF` | `b16418c06cf31e1f4e927cd4587c2114`<br>`e3992b2905e5883df46bd58370623efc` |
+| [`df500_buss_board_rev21.jed`](equations/scsi_board_rev2.1/df500_buss_board_rev21.jed) | SCSI&nbsp;rev&nbsp;2.1 | `45CF` | `8ce9e480bcbdcb65e5cc2a9cbbbe8fc1`<br>`195a0fb2baa72e0d5bc21e1c14399185` |
+| [`df500_dfi_board_rev23.jed`](equations/ide_board_rev2.3/df500_dfi_board_rev23.jed) | IDE&nbsp;rev&nbsp;2.3 | `4E96` | `b06177de634fd9c6a8366f3c9c17e1dd`<br>`e93031d823bf7e52a511a8481b856bec` |
+| [`df500_dtack02_board_rev23.jed`](equations/ide_board_rev2.3/df500_dtack02_board_rev23.jed) | IDE&nbsp;rev&nbsp;2.3 | `6A56` | `5c0cac54a9d48e44497eb32e61e63671`<br>`91b3e28613ee0365487f67ac8cb1d438` |
+
+**Why both BUSS images have fuse checksum 45CF.** The two programs contain
+the same logic. Rev 2.0 moves the 5380 `/CS` output to pin 15 and `/IOR` to
+pin 19; rev 2.1 has them the other way around. Moving logic between output
+pins moves whole bytes of the fuse map to new positions, and the checksum is
+a plain sum of those bytes, so it comes out the same. The files differ, as their SHA-256 values show, but a burned
+rev 2.0 chip and a burned rev 2.1 chip read back with the same fuse
+checksum. **Label the chip** with the board revision after burning.
 
 ## Verification status
 
@@ -221,7 +233,8 @@ The `.pld` files are CUPL source. With WinCUPL 5.0a:
 cupl -m1 -j -a -x -f df500_buss_board_rev20.pld
 ```
 
-The resulting `.jed` should reproduce the checksums above.
+The resulting `.jed` should reproduce the fuse checksums above. Its SHA-256
+will differ, because CUPL writes the compile time into the file header.
 
 ## Credits
 
