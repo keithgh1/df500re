@@ -133,11 +133,11 @@ you are replacing.
 
 | Board | Socket (original chip label) | Files |
 |---|---|---|
-| SCSI-only, PCB rev 2.0 | BUSS | [`df500_buss_board_rev20.pld`](equations/scsi_board_rev2.0/df500_buss_board_rev20.pld), [`df500_buss_board_rev20.jed`](equations/scsi_board_rev2.0/df500_buss_board_rev20.jed) |
-| SCSI-only, PCB rev 2.1 | BUSS | [`df500_buss_board_rev21.pld`](equations/scsi_board_rev2.1/df500_buss_board_rev21.pld), [`df500_buss_board_rev21.jed`](equations/scsi_board_rev2.1/df500_buss_board_rev21.jed) |
-| IDE-only, PCB rev 2.3 | BUSS socket, chip labeled DFI | [`df500_dfi_board_rev23.pld`](equations/ide_board_rev2.3/df500_dfi_board_rev23.pld), [`df500_dfi_board_rev23.jed`](equations/ide_board_rev2.3/df500_dfi_board_rev23.jed) |
-| IDE-only, PCB rev 2.3 | DTACK02 | [`df500_dtack02_board_rev23.pld`](equations/ide_board_rev2.3/df500_dtack02_board_rev23.pld), [`df500_dtack02_board_rev23.jed`](equations/ide_board_rev2.3/df500_dtack02_board_rev23.jed) |
-| SCSI + IDE combined | either | not available (see below) |
+| SCSI-only, PCB&nbsp;rev&nbsp;2.0 | BUSS | [`df500_buss_board_rev20.pld`](equations/scsi_board_rev2.0/df500_buss_board_rev20.pld)<br>[`df500_buss_board_rev20.jed`](equations/scsi_board_rev2.0/df500_buss_board_rev20.jed) |
+| SCSI-only, PCB&nbsp;rev&nbsp;2.1 | BUSS | [`df500_buss_board_rev21.pld`](equations/scsi_board_rev2.1/df500_buss_board_rev21.pld)<br>[`df500_buss_board_rev21.jed`](equations/scsi_board_rev2.1/df500_buss_board_rev21.jed) |
+| IDE-only, PCB&nbsp;rev&nbsp;2.3 | BUSS socket, chip labeled DFI | [`df500_dfi_board_rev23.pld`](equations/ide_board_rev2.3/df500_dfi_board_rev23.pld)<br>[`df500_dfi_board_rev23.jed`](equations/ide_board_rev2.3/df500_dfi_board_rev23.jed) |
+| IDE-only, PCB&nbsp;rev&nbsp;2.3 | DTACK02 | [`df500_dtack02_board_rev23.pld`](equations/ide_board_rev2.3/df500_dtack02_board_rev23.pld)<br>[`df500_dtack02_board_rev23.jed`](equations/ide_board_rev2.3/df500_dtack02_board_rev23.jed) |
+| SCSI&nbsp;+&nbsp;IDE combined | either | not available (see below) |
 
 Rev 2.0 and rev 2.1 SCSI boards route two BUSS outputs differently: on rev
 2.0, pin 15 drives the AM5380 /CS and pin 19 drives /IOR; on rev 2.1 it is
