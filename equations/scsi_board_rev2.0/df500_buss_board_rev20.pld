@@ -1,0 +1,98 @@
+Name     df500_buss_board_rev20 ;
+PartNo   00 ;
+Date     11/07/2026 ;
+Revision 01 ;
+Designer Keith Monahan ;
+Company  techtravels.org ;
+Assembly None ;
+Location  ;
+Device   g16v8a;
+
+/****************************************************************************/
+/* DataFlyer 500 "BUSS" PAL - GAL16V8 replacement for REV 2.0 boards.       */
+/*                                                                          */
+/* Rev 2.0 SCSI-only boards route two of this socket's outputs differently  */
+/* from rev 2.1: pin 15 goes to the AM5380 /CS (5380 pin 21) and pin 19     */
+/* goes to the AM5380 /IOR (5380 pin 24). On rev 2.1 these are reversed     */
+/* (pin 15 = /IOR, pin 19 = /CS). All other pins match rev 2.1.             */
+/*                                                                          */
+/* The logic is the same as df500_buss_board_rev21 (revision 02), whose     */
+/* equations match the rev 2.1 board's original BUSS PAL on every vector    */
+/* tested. Only the SCSI_CS and IO_RD pin assignments are exchanged.        */
+/* Neither signal is used as feedback, so the swap changes no equation.     */
+/*                                                                          */
+/* Rev 2.0 pin mapping traced and verified in hardware by                   */
+/* Walter [SURNAME PENDING], on a rev 2.0 SCSI-only board (AM5380 + ST-157N */
+/* drive, rev 2.1 boot EPROM), October 2026. The original rev 2.0 PAL has   */
+/* not been characterized; this image carries the rev 2.1 equations on the  */
+/* rev 2.0 pinout.                                                          */
+/*                                                                          */
+/* WARNING: board-revision specific. Rev 2.1 SCSI boards use                */
+/* df500_buss_board_rev21. IDE-capable boards use different programs in     */
+/* this socket position. Do not use this image on any board but rev 2.0.    */
+/****************************************************************************/
+
+/* How configuration works:                                                 */
+/* Before AutoConfig the 74LS373's outputs are tri-stated (/OE high) and    */
+/* pull resistors present $E8 to the address comparator, so the board       */
+/* answers in the $E80000 config slot. The Amiga assigns a base address by  */
+/* writing it (typically $E9) to ec_BaseAddress, offset $48, upper byte.    */
+/* Term A decodes that write and asserts LE_373, latching the byte into     */
+/* the '373. When the write cycle ends (AS_MATCH deasserts), term B sets    */
+/* OE_373: the '373 now drives the latched base to the comparator and the   */
+/* board answers at its assigned address ($E90000). OE_373 doubles as the   */
+/* board's "configured" flag and gates all four 5380 outputs. Both latches  */
+/* are set-and-hold and clear only on /RESET.                               */
+
+/* Dedicated input pins (same as rev 2.1) */
+
+pin 1   = F32_A1_AND_A2_LOW; /* A1#A2 via 74F32 - low only when A1=A2=0 */
+pin 2   = AS_MATCH; /* active low - address comparator match, qualified by /AS */
+pin 3   = A3; /* Amiga A3 */
+pin 4   = A4; /* Amiga A4 */
+pin 5   = A5; /* Amiga A5 */
+pin 6   = A6; /* Amiga A6 */
+pin 7   = RW; /* 68000 R/W - low = write */
+pin 8   = A15; /* low = ROM/SCSI window, high = upper half of the 64K space */
+pin 9   = UDS; /* /UDS, active low - upper data byte (ROM/autoconfig lane) */
+pin 11  = RESET; /* /RESET, active low */
+pin 13  = CCK; /* Amiga CCK - not used by this program */
+
+/* Programmable output pins (all active low) */
+
+pin 12  = !ROM_CE; /* boot EPROM /CE */
+pin 14  = !LE_373; /* 74LS373 latch enable - captures the assigned base */
+pin 15  = !SCSI_CS; /* AM5380 /CS (5380 pin 21) - rev 2.0 routing */
+pin 16  = !IO_WR; /* AM5380 /IOW (5380 pin 29) */
+pin 17  = !DACK; /* AM5380 /DACK (5380 pin 26) - pseudo-DMA access, offset $41 */
+pin 18  = !OE_373; /* 74LS373 /OE = board "configured" flag */
+pin 19  = !IO_RD; /* AM5380 /IOR (5380 pin 24) - rev 2.0 routing */
+
+/* A = the ec_BaseAddress write: upper-byte write to offset $48 while the   */
+/* board is addressed. A1/A2 low (via pin 1) rejects offsets $4A/$4C.       */
+
+A = !F32_A1_AND_A2_LOW & !AS_MATCH & A3 & !A4 & !A5 & A6 & !RW & !UDS & RESET;
+
+/* B = OE_373 set condition: base latched and the write cycle has ended.    */
+
+B = LE_373 & AS_MATCH & RESET;
+
+/* The four 5380 outputs require the board configured (OE_373) and are      */
+/* confined to the A15=0 window. ROM_CE is deliberately NOT config-gated -  */
+/* the ROM must be readable during AutoConfig - and answers upper-byte      */
+/* reads at A15=0.                                                          */
+
+/* DACK carries a self-hold: once asserted it stays asserted for the rest   */
+/* of the bus cycle (until AS_MATCH deasserts or /RESET), independent of    */
+/* address/RW changes. Found by differential transition testing of the      */
+/* original chip; keeps /DACK glitch-free across a pseudo-DMA cycle. The    */
+/* other three 5380 outputs have no hold.                                   */
+
+SCSI_CS = !AS_MATCH & !A4 & !A6 & !A15 & RESET & OE_373;
+DACK = (!AS_MATCH & !A4 & A6 & !A15 & RESET & OE_373)
+     # (DACK & !AS_MATCH & RESET);
+IO_WR = !AS_MATCH & !RW & !A15 & RESET & OE_373;
+IO_RD = !AS_MATCH & RW & !A15 & RESET & OE_373;
+LE_373 = (LE_373 & RESET) # A;
+OE_373 = (OE_373 & RESET) # B;
+ROM_CE = !AS_MATCH & RW & !A15 & !UDS & RESET;

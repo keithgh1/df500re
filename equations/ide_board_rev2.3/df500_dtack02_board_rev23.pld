@@ -1,0 +1,115 @@
+Name     df500_dtack02_board_rev23 ;
+PartNo   00 ;
+Date     2026-07-09 ;
+Revision 01 ;
+Designer Keith Monahan ;
+Company  techtravels.org ;
+Assembly None ;
+Location ;
+Device   g16v8 ;
+
+/****************************************************************************/
+/* DataFlyer 500 "DTACK02" PAL - GAL16V8 replacement for the original 16L8  */
+/* on IDE-only (PCB rev 2.3) boards.                                        */
+/*                                                                          */
+/* Bus-cycle timing for the IDE interface: the IDE command/control block    */
+/* chip selects (/CS1FX, /CS3FX), the 74LS245 data buffer enable, the       */
+/* wait-state latch behind /DTACK, /OVR for the A15=1 window, and an eighth */
+/* output on pin 13: the "SDK" /DACK-window latch.                          */
+/*                                                                          */
+/* Pin 13 drives a dedicated two-pin net to pin 13 of the DFI chip in the   */
+/* BUSS socket. The DFI's A15=1 IDE strobes (/DIOR, /DIOW) arm only while   */
+/* this window is low, so an image that leaves pin 13 undriven configures   */
+/* the card but never reaches the drive. On rev 2.1 copper this net is      */
+/* driven by the BUSS chip's pin 17 instead; this image would fight it.     */
+/*                                                                          */
+/* The equations were derived by black-box stimulus/response                */
+/* characterization of an original chip, including a 127,759-row            */
+/* differential campaign with pin 13 released and sensed as an output.      */
+/* They match the original's behavior on every vector tested. A GAL16V8-25  */
+/* burned from this source matched the original on the bench (the only      */
+/* differences were harness write-skew transients that cannot occur on the  */
+/* bus) and boots the card reliably together with df500_dfi_board_rev23.    */
+/*                                                                          */
+/* /INT6 is never driven by the original and is left disabled here. The     */
+/* shared Amiga lines (/DTACK, /OVR) are driven only while asserted         */
+/* (open-collector style via .oe).                                          */
+/*                                                                          */
+/* Clock phases below are written CCK/CDAC/CCKQ (e.g. "001" = CCK=0,        */
+/* CDAC=0, CCKQ=1).                                                         */
+/****************************************************************************/
+
+/* ---------- Inputs -------------------------------------------------------- */
+pin 1  = IORDY ;    /* IDE IOCHRDY (J8.27). Gates the NC set term.            */
+pin 2  = SIRQ ;     /* AM5380 IRQ. Unused - original never drives INT6.       */
+pin 3  = OE_373 ;   /* BUSS "configured", active LOW (low = configured)       */
+pin 4  = AS_MATCH ; /* address strobe + comparator match, active LOW          */
+pin 5  = A15 ;      /* IDE window selector                                    */
+pin 6  = CCK ;      /* Amiga CCK 3.58 MHz                                     */
+pin 7  = A11 ;      /* command(1)/control(0) block                            */
+pin 8  = A9 ;       /* IDE register region                                    */
+pin 9  = CDAC ;     /* Amiga CDAC 7.16 MHz                                    */
+pin 11 = CCKQ ;     /* Amiga CCKQ 3.58 MHz quadrature                         */
+
+/* ---------- Outputs (active low) ------------------------------------------ */
+pin 12 = !INT6 ;    /* Amiga /INT6  - SHARED - never driven (measured)        */
+pin 13 = !SDK ;     /* /DACK window OUTPUT -> DFI PAL p13 (dedicated net).    */
+pin 14 = !DTACK ;   /* Amiga /DTACK - SHARED, open-collector                  */
+pin 15 = !NC ;      /* wait-state latch (board no-connect)                    */
+pin 16 = !CS3FX ;   /* IDE /CS3FX (control block) - dedicated                 */
+pin 17 = !CS1FX ;   /* IDE /CS1FX (command block) - dedicated                 */
+pin 18 = !OE245 ;   /* 74LS245 /OE                - dedicated                 */
+pin 19 = !OVR ;     /* Amiga /OVR   - SHARED, open-collector                  */
+
+/* ---------- Decode gates --------------------------------------------------- */
+base  = !AS_MATCH & !OE_373 & A15 ;      /* NOTE: no A9 - OVR uses this       */
+base9 = base & A9 ;
+
+/* ---------- /OVR: whole matched A15 window, OC, combinational -------------- */
+OVR      = base ;
+OVR.oe   = base ;
+
+/* ---------- IDE chip selects: arm at 111 phase, hold to CCKQ-low ----------- */
+CS1FX    = (CS1FX & !AS_MATCH)
+         # (CS1FX & CCKQ)
+         # (base9 & A11 & CCK & CDAC & CCKQ) ;
+CS3FX    = (CS3FX & !AS_MATCH)
+         # (CS3FX & CCKQ)
+         # (base9 & !A11 & CCK & CDAC & CCKQ) ;
+CS1FX.oe = 'b'1 ;
+CS3FX.oe = 'b'1 ;
+
+/* ---------- SDK: the pin-13 /DACK window ----------------------------------
+   Set at the 001 phase while matched+configured with a CS latch armed
+   (CS1FX/CS3FX below = pin 17/16 feedback, asserted low). Own-pin hold
+   through every phase except 011; dies at AS-rise or unconfigure.          */
+SDK      = (!AS_MATCH & !OE_373 & !CCK & !CDAC & CCKQ & CS1FX)
+         # (!AS_MATCH & !OE_373 & !CCK & !CDAC & CCKQ & CS3FX)
+         # (SDK & !AS_MATCH & !OE_373 & CCK)
+         # (SDK & !AS_MATCH & !OE_373 & !CDAC)
+         # (SDK & !AS_MATCH & !OE_373 & !CCKQ) ;
+SDK.oe   = 'b'1 ;
+
+/* ---------- NC: IORDY-gated wait pulse, simple hold.
+   Release = first CCK=0 & CCKQ=1.                                          */
+NC       = (NC & CCK)
+         # (NC & !CCKQ)
+         # (base9 & !CCK & !CDAC & !CCKQ & IORDY) ;
+NC.oe    = 'b'1 ;
+
+/* ---------- /DTACK = NC while configured, OC on the shared line ------------ */
+DTACK    = NC & !OE_373 ;
+DTACK.oe = NC & !OE_373 ;
+
+/* ---------- /245OE: arm @110 phase or in the matched window, window open ---
+   SDK below = the pin-13 feedback (window asserted). Set = !CCKQ & window &
+   (CCK & CDAC # AS matched); holds = window or CDAC; all configured-gated.  */
+OE245    = (OE245 & SDK & !OE_373)
+         # (OE245 & CDAC & !OE_373)
+         # (CCK & CDAC & !CCKQ & SDK & !OE_373)
+         # (!AS_MATCH & !CCKQ & SDK & !OE_373) ;
+OE245.oe = 'b'1 ;
+
+/* ---------- /INT6: never driven (measured on the original) ----------------- */
+INT6     = 'b'0 ;
+INT6.oe  = 'b'0 ;

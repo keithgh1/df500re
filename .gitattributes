@@ -1,0 +1,4 @@
+# JEDEC files: STX/ETX framed, transmission checksum covers every byte.
+# Store byte-for-byte so programmers see exactly the verified images.
+*.jed binary
+*.pld -text
